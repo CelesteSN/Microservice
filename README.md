@@ -1,6 +1,6 @@
 ## Microservicio: Reclamos sobre órdenes
 
-El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un periodo de tiempo determinado. Ademas, permite al usuario visualizar sus reclamos y cancelar la orden en caso de no estar satisfecho con el resultado reclamo.
+El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un periodo de tiempo determinado. Ademas, permite al usuario visualizar sus reclamos y cancelar la orden en caso de no estar satisfecho con el resultado del reclamo.
 
 ### Casos de Uso
 
@@ -12,7 +12,7 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
 - Que se haya realizado petición de Reclamar.
 
 **Camino Normal:**
-  - Me llega por el body: `_id_order`, `claim_type` y `claim_description`.
+  - Me llega en el body: `_id_order`, `claim_type` y `claim_description`.
   - Tomar de Redis el `_id_user` del usuario usando el token del usuario.
   - Validar que el campo `claim_description` sea distinto de null.
   - Validar que la cantidad de palabras sea menor a 400 y mayor de 5.
@@ -20,10 +20,10 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
   - Obtener la Orden mediante el envió del mensaje asíncrono al servicio de Order con la propiedad `_id_order` y el `state = PAYMENT_DEFINED`.
   - Recibir mensaje asíncrono del servicio de order.
   - Validar que el usuario que quiere crear el reclamo esté en la orden.
-  - Validar que la fecha este dentro del periodo permitido para realizar reclamos
-  - Buscar el estado pendiente en `claim_state`.
-  - Crear reclamo con el id del usuario, id de la orden, tipo de reclamo, descripción,   fecha de creación de hoy.
-  - Crear un `claim_state` con el id del reclamo y el id del estado pendiente.
+  - Validar que la fecha de la orden este dentro del periodo permitido para realizar reclamos
+  - Buscar el estado "Pending" en `claim_state`.
+  - Crear reclamo con: id de la orden, tipo de reclamo, descripción,   fecha de creación de hoy.
+  - Crear un `claim_state_history` con el id del nuevo reclamo y el id del estado "Pending".
   - Se envía un mensaje "send_notification", con tipo claim_created, para que el servicio de notification realice la notificación correspondiente.
 
 
@@ -37,23 +37,20 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
 
   
 #### CU-002: Modificar Reclamo
-**Descripción:** Permite que el usuario pueda modificar el reclamo realizado, solo puede ser editado hasta una hora después de creado (claim en estado `pending`).
+**Descripción:** Permite que el usuario pueda modificar el reclamo realizado, solo puede ser editado hasta una hora después de creado (claim en estado `Pending`).
 
 **Precondición:**
 - Que exista un reclamo creado y en estado "Pending".
 - Que se haya realizado petición de modificar Reclamo.
 
 **Camino Normal:**
-- Me llega el claim_id como parametro de la ruta
-- Me llega por el body: `_id_order`, `claim_type` y `claim_description`.
+- Llega el claim_id como parametro de la ruta
+- Llega por el body: `_id_order`, `claim_type` y `claim_description`.
 - Tomar de Redis el `_id_user` del usuario usando el token del usuario.
-- Buscar el reclamo con claim_id ingresado
-- Verificar la fecha y hora, para saber si es posible modificar el reclamo. (o que este en estado "Pending")
+- Buscar el reclamo con claim_id ingresado y el estado "Pending" (indica q esta dentro del tiempo para poder ser editado)
 - Validar que el campo `claim_description` sea distinto de null.
 - Validar que la cantidad de palabras sea menor a 400 y mayor de 5.
 - Validar que el campo `claim_type` sea distinto de null.
-- Obtener la Orden mediante el envió del mensaje asíncrono al servicio de Order con la propiedad `_id_order` y el `state = PAYMENT_DEFINED`.
-- Validar que el usuario logueado este en la orden
 - Setear al reclamo con claim_id los atributos ingresados por el body validados
 - Guardar el reclamo modificado
 - Se envía un mensaje "send_notification", con tipo claim_edited, para que el servicio de notification realice la notificación correspondiente.
@@ -62,7 +59,7 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
  Me llega el claim_id como parametro de la ruta
 - Me llega por el body: `_id_order`, `claim_type` y `claim_description`.
 - Tomar de Redis el `_id_user` del usuario.
-- Buscar el reclamo con claim_id ingresado
+- Buscar el reclamo con claim_id ingresado y estado "Pending"
 - Verificar la fechay hora, para saber si es posible modificar el reclamo.
 - El tiempo de modificación se excedio,
 - Se envía un mensaje "send_notification", con tipo claim_rejected, para que el servicio de notification realice la notificación correspondiente.
@@ -78,13 +75,11 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
 **Camino Normal:**
 - Me llega el claim_id como parametro de la ruta.
 - Tomar de Redis el `_id_user` del usuario usando el token.
-- Buscar el reclamo con claim_id ingresado
+- Buscar el reclamo con claim_id ingresado y estado "Pending"
 - Verificar la fecha y hora, para saber si es posible eliminar el reclamo. SI es posible:
-- Enviar mensaje asíncrono al servicio de Order con la propiedad `_id_order` y el `state = PAYMENT_DEFINED`.
-- Recibir mensaje asíncrono del servicio de order.
-- Validar que el usuario q quiere eliminar reclamo sea el que aparece en la orden
+- Validar que el usuario q quiere eliminar reclamo sea el que aparece en la orden??????
 - buscar el estado `deleted` en claim_state
-- crear una nueva instancia de state_claim_state con:
+- crear una nueva instancia de state_claim_history con:
   - claim_id
   - claim_state_id
 - guardar la instancia
@@ -100,7 +95,7 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
 
   
 #### CU-004: Mostrar reclamos
-**Descripción:** Permite al usuario visualizar el listado de reclamos, para poder consultar el estado de los mismos (si se resolvió o no).
+**Descripción:** Permite al usuario visualizar el listado de sus  reclamos, pudiendo filtrarlos por estado.
 
 **Precondición:**
 - Que el usuario tenga un token válido.
@@ -109,10 +104,10 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
 
 **Camino Normal:**
 - Tomar de Redis el `_id_user` del usuario usando el token.
-- Obtener la Orden mediante el envió del mensaje asíncrono al servicio de Order con la propiedad `_id_order` y el `state = PAYMENT_DEFINED`.
+- Obtener la Orden mediante el envió del mensaje asíncrono al servicio de Order con la propiedad `_id_user` y el `state = PAYMENT_DEFINED`.
 - Por cada orden buscar todos los reclamos asociados
 - Por cada uno buscar su estado
-- mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción y estado
+- mostrar: Nro de reclamo, nro de orde, tipo de reclamo,  descripción y estado
 
 **Camino Alternativo:**
 - Tomar de Redis el `_id_user` del usuario usando el token.
@@ -121,29 +116,20 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
 - Por cada orden buscar todas los reclamos asociados y que esten en estado "Under Review"
 - Se envía un mensaje "send_notification", con tipo claim_not_found, para que el servicio de notification realice la notificación correspondiente.
 
-#### CU-005: Resolver Reclamo
-**Descripción:** Permite al usuario acceder un reclamos especifico para consultar su estado. En caso de no 
+#### CU-005: Ver detalle del reclamo
+**Descripción:** Permite al usuario acceder a un reclamos especifico para consultar su estado. (Puede haber llegado desde una notificación o puede ser accedido desde el listado)
 
 **Precondición:**
 - Que el usuario tenga un token válido.
-- Que exista un reclamo creado en estado.
-- Que se haya realizado petición Resolver reclamo
+- Que exista un reclamo creado.
+- Que se haya realizado petición Ver detalle del reclamo
 
 **Camino Normal:**
 - Llega claim_id por el parametro de la ruta
 - Busco el reclamo
-- Busco su estado asociado
+- Busco el ultmo estado estado asociado
 - Muestro el nro de reclamo, tipo de reclamo, descripcion, respuesta, fecha de resolución , estado
 - Si el estado en Canceled, no puedo cancelar la Order
-
-  
-- Busco los datos del usuario en la orden 
-- Busco el estado acepted en claim_state
-- Creo una nueva instancia de state_claim_state con:
-      - claim_id
-      - claim_state_id
-      - created_date: fecha de hoy
-- Se envía un mensaje "send_notification", con tipo claim_acepted, adjuntanto el los pasos a seguir para resolver el reclamo, para que el servicio de notification realice la notificación correspondiente.
 
 
 **Camino Alternativo:**
@@ -152,9 +138,11 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
 - Busco su estado asociado
 - Muestro el nro de reclamo, tipo de reclamo, descripcion, respuesta, fecha de resolución , estado
 - Si el estado es "Accepted"
-
+- muestro la opción de solicitar devolucion/cancelación
+  
 ### Diagrama de estados del reclamo
-![image](https://github.com/user-attachments/assets/518d05c7-8f8f-4e66-bdfa-f7616f6db48f)
+![image](https://github.com/user-attachments/assets/518d05c7-8f8f-4e66-bdfa-f7616f6db48fzz
+
 
 ### Modelo de Datos
 
@@ -187,6 +175,8 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
 | `claim_state_history_id` | String | Identificador del estado por el que ha pasado el reclamo |
 | `claim_state_id`         | String | Identificador del estado                           |
 | `claim_id`               | String | Identificador del reclamo                          |
+| `created_date`           | Date   | Fecha en que se porduce el cambio de estado        |
+
 
 ### Interfaz Rest
 
@@ -323,15 +313,11 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
       { "error_message": "{error_message}" }
       ```
 
-**Resolver reclamo**
-- `PUT ('/v1/claims/resolve_claim/:id')`
+**Ver detalle del reclamo**
+- `GET ('/v1/claims/resolve_claim/:id')`
   - **Header**
     ``` 
     Authorization: Bearer {token}
-    ```
-    - **Query Param**
-    ``` 
-    accepted: true/false
     ```
   - **Response**
     - `200 OK`
