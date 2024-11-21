@@ -138,10 +138,12 @@ El usuario reclama algo de la orden, permitiendo aditarla o eliminarla en un per
 - Busco su estado asociado
 - Muestro el nro de reclamo, tipo de reclamo, descripcion, respuesta, fecha de resolución , estado
 - Si el estado es "Accepted"
-- muestro la opción de solicitar devolucion/cancelación
+- habilito la opción de solicitar devolucion/cancelación
+  
   
 ### Diagrama de estados del reclamo
-![image](https://github.com/user-attachments/assets/518d05c7-8f8f-4e66-bdfa-f7616f6db48fzz
+
+![image](https://github.com/user-attachments/assets/cc7376b6-2c97-47dc-80e7-b4cb35a3e362)
 
 
 ### Modelo de Datos
