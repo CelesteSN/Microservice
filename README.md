@@ -14,13 +14,13 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 
 **Camino Normal:**
   - Me llega en el body: `_id_order`, `claim_type` y `claim_description`.
-  - Obt el `_id_user` del usuario usando el token del usuario.
+  - Obtener el `_id_user` del usuario usando el token del usuario.
   - Validar que el campo `claim_description` sea distinto de null.
   - Validar que la cantidad de palabras sea menor a 400 y mayor de 5.
   - Validar que el campo `claim_type` sea distinto de null.
   - Obtener la Orden mediante el envió del mensaje al servicio de Order con la propiedad `_id_order` y el `state = PAYMENT_DEFINED`.
   - Obtener el estado "Pending" desde la Enum  `claim_state`.
-  - Crear claim con: useser_id, order_id, claim_type, description, created_date: fecha de hoy.
+  - Crear claim con: user_id, order_id, claim_type, description, created_date: fecha de hoy.
   - Crear `claim_state_history` con el id del nuevo reclamo y claim_state_pending: "Pending" y created_date: fecha de hoy.
   - Se envía un mensaje "send_notification", con tipo claim_created_sussesfuly, para que el servicio de notification realice la notificación correspondiente.
 
@@ -36,17 +36,17 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 - Me llega el claim_id como parametro de la ruta.
 - Obtener el `_id_user` del usuario usando el token.
 - Buscar el reclamo con claim_id ingresado y ultimo estado estado = "Pending"
-- buscar el estado `deleted` en la Enum claim_state
+- buscar el estado `Deleted` en la Enum claim_state
 - crear una nueva instancia de state_claim_history con:
   - claim_state_history_claim_id: claim_id
-  - claim_state_history_name : "Pending"
+  - claim_state_history_name : "Deleted"
   - created_date: fecha de hoy
 - guardar la instancia
 - Se envía un mensaje "send_notification", con tipo claim_deleted, para que el servicio de notification realice la notificación correspondiente.
 
   
 #### CU-003: Visualizar reclamos
-**Descripción:** Permite al usuario visualizar el listado de  reclamos, pudiendo filtrarlos por estado.
+**Descripción:** Permite al usuario o administrador visualizar el listado de  reclamos, pudiendo filtrarlos por estado.
 
 **Precondición:**
 - Que el usuario tenga un token válido.
@@ -54,16 +54,15 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 - Que se haya realizado petición Ver listado de reclamos.
 
 **Camino Normal:**
-Si el usuario es cliente
 - Obtener el `_id_user` del usuario usando el token.
-- Buscar todos los reclamos asociados al usuario (si se ingresó un filtro, se realiza la busqueda teniendo en cuenta el filtrado)
-- mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción y estado
+- Si el usuario es cliente
+- Buscar todos los reclamos asociados al usuario (si se ingresó un estado en el filtro, se realiza la busqueda teniendo en cuenta el estado ingresado)
+- mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción, answer y estado
 
 **Camino Alternativo:**
-Si el usuario es Admin
-- Obtener el `_id_user` del usuario usando el token.
-- Buscar todos los reclamos (si se ingresó un filtro, se realiza la busqueda teniendo en cuenta el filtrado)
-- mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción y estado
+Si el usuario es Administador
+- Buscar todos los reclamos (si se ingresó un estado filtro, se realiza la busqueda teniendo en cuenta el estado), por defecto solo busca los que tienen estado pendiente
+- mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción, answer y estado
 
 
 #### CU-003: Resolver reclamo
@@ -77,43 +76,43 @@ Si el usuario es Admin
 **Camino Normal:**
 - Obtener el `_id_user` del usuario usando el token.
 - Buscar buscar el reclamo para el claim_id recibido
-- Obtener el estado "Accepted" de la Enum claim_state//vene como parametro
+- Si isAccepted = true
+- Obtener el estado "Accepted" de la Enum claim_state
 - crear instancia de claim_state_history: con order_id, claim_state: Accepted, created_date: date Now,
 - setear answer a Claim
+- setear resolution_date = fecha de hoy
 - Se envía un mensaje "send_notification", con tipo claim_accepted, para que el servicio de notification realice la notificación correspondiente.
 
 **Camino Alternativo:**
-- Obtener el estado "Canceled" de la Enum claim_state//vene como parametro
+- Si isAccepted = false
+- Obtener el estado "Canceled" de la Enum claim_state
 - crear instancia de claim_state_history: con order_id, claim_state:Canceled, created_date: date Now,
 - setear answer a Claim
+- setear resolution_date = fecha de hoy
 - Se envía un mensaje "send_notification", con tipo claim_canceled, para que el servicio de notification realice la notificación correspondiente.
 
 
-#### CU-004: Ver detalle del reclamo
-**Descripción:** Permite al usuario acceder a un reclamo especifico. (Puede haber llegado desde una notificación o puede ser accedido desde el listado)
+#### CU-004: Solicitar cancelacion de compra- RabbitMq
+**Descripción:** Permite al usuario cancelar la compra realizada
 
 **Precondición:**
 - Que el usuario tenga un token válido.
-- Que exista un reclamo creado.
-- Que se haya realizado petición Ver detalle del reclamo
+- Que exista un reclamo creado en estado "Accepted".
+- Que se haya realizado petición "Solicitar cancelación de compra"
+
 
 **Camino Normal:**
-- Llega claim_id por el parametro de la ruta
-- Busco el reclamo
-- Busco el ultmo estado estado asociado teniendo en cuenta la fecha
-- Muestro el nro de reclamo, tipo de reclamo, descripcion, answer, estado, created_date
-- Si el estado es "Accepted", habilito la opcion de cancelar compra
-- Si cancela la orden
-- Envio un mensaje al servicio order
+- Obtener el `_id_user` del usuario usando el token.
+- Buscar buscar el reclamo para el claim_id recibido cuyo último estado "Accepted"
+- Obtener el order_id
+- Enviar mensaje asincrono al servico de Order, para que porcece la cancelacion.
+- Se envía un mensaje asincrono "send_notification", con tipo order_canceled_pending, para que el servicio de notification realice la notificación correspondiente.
+- Busco en claim_state_enum el estado "Deleted"
+- creo una instancia de claim_state_history con: claim_id, stateName: "Deteted" , created_date: fecha de hoy 
 
 
-**Camino Alternativo:**
-- Llega claim_id por el parametro de la ruta
-- Busco el reclamo
-- Busco su estado asociado
-- Muestro el nro de reclamo, tipo de reclamo, descripcion, answer, estado, created_date
-- Si el estado es "Accepted"
-- habilito la opción de solicitar devolucion/cancelación
+
+
   
   
 ### Diagrama de estados del reclamo
