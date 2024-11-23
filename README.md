@@ -263,7 +263,7 @@ Si el usuario es Administador
           "claim_type": "type2",
           "description": "desc2",
           "created_date": "date2",
-          "state": "state2", }
+          "state": "state2" }
         ]
       }
       ```
