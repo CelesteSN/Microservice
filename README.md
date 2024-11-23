@@ -1,6 +1,6 @@
 ## Microservicio: Reclamos sobre órdenes
 
-El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el reclamo correctamente.
+El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el reclamo correctamente. El administrador consulta y resuleve los reclamos
 
 
 ### Casos de Uso
@@ -104,9 +104,9 @@ Si el usuario es Administador
 **Camino Normal:**
 - Obtener el `_id_user` del usuario usando el token.
 - Buscar buscar el reclamo para el claim_id recibido cuyo último estado "Accepted"
-- Obtener el order_id
+- Obtener el order_id asociado
 - Enviar mensaje asincrono al servico de Order, para que porcece la cancelacion.
-- Se envía un mensaje asincrono "send_notification", con tipo order_canceled_pending, para que el servicio de notification realice la notificación correspondiente.
+- Se envía un mensaje asincrono "send_notification", con tipo claim_pending_return, para que el servicio de notification realice la notificación correspondiente.
 - Busco en claim_state_enum el estado "Deleted"
 - creo una instancia de claim_state_history con: claim_id, stateName: "Deteted" , created_date: fecha de hoy 
 
@@ -117,7 +117,8 @@ Si el usuario es Administador
   
 ### Diagrama de estados del reclamo
 
-![image](https://github.com/user-attachments/assets/cc7376b6-2c97-47dc-80e7-b4cb35a3e362)
+![image](https://github.com/user-attachments/assets/459065c8-9a9e-4a49-a103-77e588642aa2)
+
 
 
 ### Modelo de Datos
@@ -125,22 +126,25 @@ Si el usuario es Administador
 #### claim
 | Column           | Type   | Description                                                                     |
 |------------------|--------|---------------------------------------------------------------------------------|
-| `claim_id`       | String | Identificador del evento                                                        |
+| `claim_id`       | String | Identificador del reclamo                                                       |
 | `orderId`        | String | Identificador de la orden                                                       |
-| `claim_type_id`  | String | Parametriza al reclamo dentro de un listado de tipos de reclamo precargado       |
-| `description`    | String | Campo para que el cliente agregue un texto explicando el motivo del reclamo      |
-| `resolutionDate` | Date   | Campo que contiene la fecha de resolución del reclamo, inicialmente vacío       |
-| `anwer`          | string | Campo que contiene un link a un archivo que continene doumentación adjunta para fundamentar la decisión|
-| `createdDate`    | Date   | Contiene la fecha de creación del reclamo                                        |
-| `editedDate`     | Date   | Contiene la fecha de modificación del reclamo                                    |
-| `deletedDate`    | Date   | Contiene la fecha de eliminación del reclamo                                     |
+| `userId`         | String | Identificador del usuario                                                       |
+| `claim_number`   | String | Para el negocio                                                                 |
+| `claim_type`     | String | tipo de reclamo                                                                 |
+
+| `claim_description`    | String | Campo para que el cliente agregue un texto explicando el motivo del reclamo     |
+| `resolution_date` | Date   | Campo que contiene la fecha de resolución del reclamo, inicialmente vacío       |
+| `answer`          | string | Campo que contiene un link a un archivo que continene doumentación adjunta para fundamentar la decisión, inicialmente vacio|
+| `createdDate`    | Date   | Contiene la fecha de creación del reclamo                                       |
+| `editedDate`     | Date   | Contiene la fecha de modificación del reclamo                                   |
+| `deletedDate`    | Date   | Contiene la fecha de eliminación del reclamo                                    |
 
 
 #### claim_state_history
 | Column                   | Type   | Description                                        |
 |--------------------------|--------|----------------------------------------------------|
 | `claim_state_history_id` | String | Identificador del estado por el que ha pasado el reclamo |
-| `claim_state`            | String | Estado                                             |
+| `claim_state_name`       | String | Estado                                             |
 | `claim_id`               | String | Identificador del reclamo                          |
 | `created_date`           | Date   | Fecha en que se porduce el cambio de estado        |
 
@@ -161,18 +165,10 @@ Si el usuario es Administador
 "claim_type_warranty: "Warranty",
 }
 
-#### claim_message_enum
-{
-"claim_type_delay": "Delay",
-"claim_type_product_breakage": "Product breakage",
-"claim_type_insatisfaction": "insatisfaction",
-"claim_type_warranty: "Warranty",
-}
-
 
 ### Interfaz REST
 
-**Crear Reclamo**
+**Crear Reclamo** (Usuario)
 - `POST ('/v1/claims')`
   - **Header**
     ``` 
@@ -208,7 +204,7 @@ Si el usuario es Administador
       { "error_message": "{error_message}" }
       ```
 
-**Eliminar Reclamo**
+**Eliminar Reclamo** (Usuario)
 - `DELETE ('/v1/claims/{claim_id}')`
   - **Header**
     ``` 
@@ -240,7 +236,7 @@ Si el usuario es Administador
       { "error_message": "{error_message}" }
       ```
 
-**Mostrar listado de reclamos**
+**Mostrar listado de reclamos** (Usuario y Administrador)
 - `GET ('/v1/claims/')`
   - **Header**
     ``` 
@@ -249,6 +245,7 @@ Si el usuario es Administador
   - **Query Params**
     ``` 
     claim_state: string
+    profile_id: string
     ```
   - **Response**
     - `200 OK`
@@ -287,7 +284,7 @@ Si el usuario es Administador
       { "error_message": "{error_message}" }
       ```
 
-**Resolver reclamo**
+**Resolver reclamo** (Administrador)
 - `PUT ('/v1/claims/{claim_id})`
  - **Header**
     ``` 
@@ -297,10 +294,14 @@ Si el usuario es Administador
     ``` 
     claim_id: string (required)
     ```
+    - **Query Params**
+    ``` 
+    isAccept: boolean
+    ```
 - **Response**
     - `200 OK`
       ```json
-      { "message": "Reclamo aceptado exitosamente" }/{ "message": "Reclamo rechazado exitosamente" }
+      { "message": "Reclamo aceptado/rechazado exitosamente" }
       ```
     - `400 BAD REQUEST`
       ```json
@@ -323,8 +324,8 @@ Si el usuario es Administador
 
 
 
-**Ver detalle del reclamo**
-- `GET ('/v1/claims/{claim_id})`
+**Solicitar cancelacion de compra** (Usuario)
+- `POST ('/v1/claims/{claim_id}/return)`
   - **Header**
     ``` 
     Authorization: Bearer {token}
@@ -332,7 +333,7 @@ Si el usuario es Administador
   - **Response**
     - `200 OK`
       ```json
-      { "message": "Claim r" }
+      { "message": "La devolucion esta siendo procesada, revise su email en 24 hs" }
       ```
     - `400 BAD REQUEST`
       ```json
@@ -350,4 +351,20 @@ Si el usuario es Administador
       ```json
       { "error_message": "{error_message}" }
       ```
+### Interfaz asincronica (rabbit)
+**Cancelación de la orden**
+Envia por medio del exchange direct claim_accepted a través de la queue claim_order_canceled body
 
+{
+	"orderId": "23423",
+	"userId": "23423",
+	"status": "Canceled"
+}
+**Pedido de notificación**
+Envía por medio del exchange direct send_notification a través de la queue claim_pending_return body
+
+{
+	"notificationType": "claim_pending_return",
+    "userId": "234123",
+	"orderId": "12341324"
+}
