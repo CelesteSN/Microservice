@@ -354,17 +354,20 @@ Si el usuario es Administador
 ### Interfaz asincronica (rabbit)
 **Cancelación de la orden**
 Envia por medio del exchange direct claim_accepted a través de la queue claim_order_canceled body
-
+  ```json
 {
 	"orderId": "23423",
 	"userId": "23423",
 	"status": "Canceled"
 }
+  ```
 **Pedido de notificación**
 Envía por medio del exchange direct send_notification a través de la queue claim_pending_return body
+  ```json
 
 {
 	"notificationType": "claim_pending_return",
     "userId": "234123",
 	"orderId": "12341324"
 }
+  ```
