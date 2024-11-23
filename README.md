@@ -65,7 +65,7 @@ Si el usuario es Administador
 - mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción, answer y estado
 
 
-#### CU-003: Resolver reclamo
+#### CU-004: Resolver reclamo
 **Descripción:** Permite al Admin resolver el reclamo.
 
 **Precondición:**
@@ -92,7 +92,7 @@ Si el usuario es Administador
 - Se envía un mensaje "send_notification", con tipo claim_canceled, para que el servicio de notification realice la notificación correspondiente.
 
 
-#### CU-004: Solicitar cancelacion de compra- RabbitMq
+#### CU-005: Solicitar cancelacion de compra- RabbitMq
 **Descripción:** Permite al usuario cancelar la compra realizada
 
 **Precondición:**
@@ -256,13 +256,13 @@ Si el usuario es Administador
          "order_id":"Oder1",
           "claim_type": "type1",
           "description": "desc1",
-          "created_date": "date1" },
+          "created_date": "date1",
           "state": "state1" },
          { "claim_id": "claim2",
          "order_id":"Oder2",
           "claim_type": "type2",
           "description": "desc2",
-          "created_date": "date2" },
+          "created_date": "date2",
           "state": "state2", }
         ]
       }
@@ -352,7 +352,7 @@ Si el usuario es Administador
       { "error_message": "{error_message}" }
       ```
 ### Interfaz asincronica (rabbit)
-**Cancelación de la orden**
+**Cancelación de la orden:**
 Envia por medio del exchange direct claim_accepted a través de la queue claim_order_canceled body
   ```json
 {
@@ -361,7 +361,7 @@ Envia por medio del exchange direct claim_accepted a través de la queue claim_o
 	"status": "Canceled"
 }
   ```
-**Pedido de notificación**
+**Pedido de notificación:**
 Envía por medio del exchange direct send_notification a través de la queue claim_pending_return body
   ```json
 
