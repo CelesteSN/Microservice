@@ -13,18 +13,18 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 - Que se haya realizado petición de Reclamar.
 
 **Camino Normal:**
-  - Me llega en el body: `_id_order`, `claim_type` y `claim_description`.
-  - Obtener el `_id_user` del usuario usando el token del usuario.
+  - Me llega en el body: `id_order`, `claim_type` y `claim_description`.
+  - Obtener el `id_user` del usuario usando el token del usuario.
   - Validar que el campo `claim_description` sea distinto de null.
   - Validar que la cantidad de palabras sea menor a 400 y mayor de 5.
   - Validar que el campo `claim_type` sea distinto de null.
   - Obtener la Orden mediante el envió del mensaje al servicio de Order con la propiedad `_id_order` y el `state = PAYMENT_DEFINED`.
-  - Obtener el estado "Pending" desde la Enum  `claim_state`.
+  - Obtener el estado "Pending" desde la Enum  `claim_state_enum`.
   - Crear claim con: user_id, order_id, claim_type, description, created_date: fecha de hoy.
   - Crear `claim_state_history` con el id del nuevo reclamo y claim_state_pending: "Pending" y created_date: fecha de hoy.
   - Se envía un mensaje "send_notification", con tipo claim_created_sussesfuly, para que el servicio de notification realice la notificación correspondiente.
 
-  
+ 
 #### CU-002: Eliminar Reclamo
 **Descripción:** Permite que el usuario pueda eliminar el reclamo realizado.
 
@@ -34,9 +34,9 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 
 **Camino Normal:**
 - Me llega el claim_id como parametro de la ruta.
-- Obtener el `_id_user` del usuario usando el token.
+- Obtener el `id_user` del usuario usando el token.
 - Buscar el reclamo con claim_id ingresado y ultimo estado estado = "Pending"
-- buscar el estado `Deleted` en la Enum claim_state
+- buscar el estado `Deleted` en claim_state_enum
 - crear una nueva instancia de state_claim_history con:
   - claim_state_history_claim_id: claim_id
   - claim_state_history_name : "Deleted"
@@ -54,10 +54,10 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 - Que se haya realizado petición Ver listado de reclamos.
 
 **Camino Normal:**
-- Obtener el `_id_user` del usuario usando el token.
+- Obtener el `id_user` del usuario usando el token.
 - se verifica si llego en el query params un estado, para realizar el filtrado
-- Con el token recibido solicito a traves del envio de un mensaje al servicio de Auth el usuario legueado.
-- verifico si en el atributo permisisons de tipo array de string hay un string de tipo "admin"
+- Con el token recibido solicito a traves del envio de un mensaje al servicio de Auth el usuario logueado.
+- verifico si en el atributo permissions(de tipo array de string) hay un string de tipo "admin"
 - Si no existe (el usuario es cliente)
 - Buscar todos los reclamos asociados al usuario (si se ingresó un estado en el filtro, se realiza la busqueda teniendo en cuenta el estado ingresado)
 - mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción, answer y estado
@@ -77,10 +77,10 @@ Si existe ( el usuario es Administador)
 - Que se haya realizado petición Resolver de reclamo.
 
 **Camino Normal:**
-- Obtener el `_id_user` del usuario usando el token.
+- Obtener el `id_user` del usuario usando el token.
 - Buscar buscar el reclamo para el claim_id recibido
 - Si isAccepted = true
-- Obtener el estado "Accepted" de la Enum claim_state
+- Obtener el estado "Accepted" de la Enum claim_state_enum
 - crear instancia de claim_state_history: con order_id, claim_state: Accepted, created_date: date Now,
 - setear answer a Claim
 - setear resolution_date = fecha de hoy
@@ -88,7 +88,7 @@ Si existe ( el usuario es Administador)
 
 **Camino Alternativo:**
 - Si isAccepted = false
-- Obtener el estado "Canceled" de la Enum claim_state
+- Obtener el estado "Canceled" de la Enum claim_state_enum
 - crear instancia de claim_state_history: con order_id, claim_state:Canceled, created_date: date Now,
 - setear answer a Claim
 - setear resolution_date = fecha de hoy
@@ -105,13 +105,13 @@ Si existe ( el usuario es Administador)
 
 
 **Camino Normal:**
-- Obtener el `_id_user` del usuario usando el token.
-- Buscar buscar el reclamo para el claim_id recibido cuyo último estado "Accepted"
+- Obtener el `id_user` del usuario usando el token.
+- Buscar el reclamo para el claim_id recibido cuyo último estado "Accepted"
 - Obtener el order_id asociado
-- Enviar mensaje asincrono al servico de Order, para que porcece la cancelacion.
+- Enviar mensaje asincrono al servico de Order, para que procese la cancelación.
 - Se envía un mensaje asincrono "send_notification", con tipo claim_pending_return, para que el servicio de notification realice la notificación correspondiente.
-- Busco en claim_state_enum el estado "Deleted"
-- creo una instancia de claim_state_history con: claim_id, stateName: "Deteted" , created_date: fecha de hoy 
+- Busco en claim_state_enum el estado "Discharged"
+- creo una instancia de claim_state_history con: claim_id, stateName: "Discharged" , created_date: fecha de hoy 
 
 
 
@@ -120,7 +120,7 @@ Si existe ( el usuario es Administador)
   
 ### Diagrama de estados del reclamo
 
-![image](https://github.com/user-attachments/assets/6aa5faf5-7d0c-4a68-87cb-584c370ba424)
+![image](https://github.com/user-attachments/assets/eaf42ed0-3781-4f40-bb6b-b8f7b92d157c)
 
 
 
@@ -158,6 +158,8 @@ Si existe ( el usuario es Administador)
 "claim_state_Deleted": "Deleted",
 "claim_state_Accepted": "Accepted",
 "claim_state_Canceled": "Canceled",
+"claim_state_Canceled": "Discharged",
+
 }
 
 #### claim_type_enum
@@ -333,6 +335,10 @@ Si existe ( el usuario es Administador)
     ``` 
     Authorization: Bearer {token}
     ```
+  - **Uri Params**
+    ``` 
+    claim_id: string (required)
+    ```
   - **Response**
     - `200 OK`
       ```json
@@ -370,7 +376,7 @@ Envía por medio del exchange direct send_notification a través de la queue cla
 
 {
 	"notificationType": "claim_pending_return",
-    "userId": "234123",
+   	 "userId": "234123",
 	"orderId": "12341324"
 }
   ```
