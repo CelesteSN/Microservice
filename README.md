@@ -120,7 +120,7 @@ Si existe ( el usuario es Administador)
   
 ### Diagrama de estados del reclamo
 
-![image](https://github.com/user-attachments/assets/459065c8-9a9e-4a49-a103-77e588642aa2)
+![image](https://github.com/user-attachments/assets/6aa5faf5-7d0c-4a68-87cb-584c370ba424)
 
 
 
