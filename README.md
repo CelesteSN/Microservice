@@ -55,12 +55,15 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 
 **Camino Normal:**
 - Obtener el `_id_user` del usuario usando el token.
-- Si el usuario es cliente
+- se verifica si llego en el query params un estado, para realizar el filtrado
+- Con el token recibido solicito a traves del envio de un mensaje al servicio de Auth el usuario legueado.
+- verifico si en el atributo permisisons de tipo array de string hay un string de tipo "admin"
+- Si no existe (el usuario es cliente)
 - Buscar todos los reclamos asociados al usuario (si se ingresó un estado en el filtro, se realiza la busqueda teniendo en cuenta el estado ingresado)
 - mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción, answer y estado
 
 **Camino Alternativo:**
-Si el usuario es Administador
+Si existe ( el usuario es Administador)
 - Buscar todos los reclamos (si se ingresó un estado filtro, se realiza la busqueda teniendo en cuenta el estado), por defecto solo busca los que tienen estado pendiente
 - mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción, answer y estado
 
@@ -244,8 +247,7 @@ Si el usuario es Administador
     ```
   - **Query Params**
     ``` 
-    claim_state: string
-    profile_id: string
+    state: string
     ```
   - **Response**
     - `200 OK`
@@ -294,9 +296,10 @@ Si el usuario es Administador
     ``` 
     claim_id: string (required)
     ```
-    - **Query Params**
+    - **Body**
     ``` 
     isAccept: boolean
+    answer: string
     ```
 - **Response**
     - `200 OK`
