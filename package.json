@@ -1,0 +1,35 @@
+{
+  "name": "microservice",
+  "version": "1.0.0",
+  "description": "El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el reclamo correctamente. El administrador consulta y resuleve los reclamos",
+  "main": "server.js",
+  "scripts": {
+    "dev": "concurrently \"tsc --watch\"  \"nodemon dist/server.js\"",
+    "buid": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/morgan": "^1.9.9",
+    "concurrently": "^9.1.0",
+    "nodemon": "^3.1.7",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@typegoose/typegoose": "^12.9.1",
+    "@types/amqplib": "^0.10.6",
+    "axios": "^1.7.9",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "express": "^4.21.2",
+    "mongoose": "^8.8.4",
+    "morgan": "^1.10.0",
+    "redis": "^4.7.0",
+    "ts-node": "^10.9.2",
+    "winston": "^3.17.0"
+  }
+}
