@@ -18,11 +18,14 @@ exports.claimById = claimById;
 exports.editClaim = editClaim;
 exports.lowClaim = lowClaim;
 const claim_model_1 = __importDefault(require("../models/claim.model"));
-function saveClaim(orderId, userId, descr, claimType) {
+const userRedis_1 = require("../redis/userRedis");
+function saveClaim(token, orderId, descr, claimType) {
     return __awaiter(this, void 0, void 0, function* () {
+        const user = yield (0, userRedis_1.getUser)(token); //tomo el _id_user del token validado en el middleware
+        let _id_user = user.id;
         const claim1 = new claim_model_1.default({
             order_id: orderId,
-            user_id: userId,
+            user_id: _id_user,
             description: descr,
             claim_type: claimType,
             status: [{

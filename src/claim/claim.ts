@@ -2,14 +2,19 @@
 import e from "cors";
 import Claim from "../models/claim.model";
 //import  ClaimStatusHistory  from "../models/claimStatusHistory.model";
-import mongoose from "mongoose";
+import mongoose, { get } from "mongoose";
 import { error } from "winston";
+import { getUser } from "../redis/userRedis";
+import {IUser} from "../interfaces/userReq.interface";
 
-export async function saveClaim(orderId: string, userId: string, descr: string, claimType: string) {
+export async function saveClaim(token: string, orderId: string,  descr: string, claimType: string) {
+
+    const user: IUser = await getUser(token);//tomo el _id_user del token validado en el middleware
+    let _id_user = user.id;
 
     const claim1 = new Claim({
         order_id: orderId,
-        user_id: userId,
+        user_id: _id_user,
         description: descr,
         claim_type: claimType,
         status: [{

@@ -1,14 +1,21 @@
 
 import {connectDB } from "./config/mongoDB";
 //import {  saveClaim, getClaims , getClaimById, updateClaim, deleteClaim} from "./claim/claim";
-import Claim from "./models/claim.model";
+//import Claim from "./models/claim.model";
 import { environmentsConfig } from "./config/environments";
 import { initExpress } from "./server/express";
+import { redisInit } from './redis/userRedis';
+
 
 
 const config = environmentsConfig();
 const port = config.port;
 connectDB();
+
+
+
+// Conexión Redis
+redisInit();
 
 //saveClaim();
 //getClaims();

@@ -42,8 +42,11 @@ function getClaimById(req, res) {
 function createClaim(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { order_id, user_id, description, claim_type } = req.body;
-            yield (0, claim_1.saveClaim)(order_id, user_id, description, claim_type);
+            //Tomo el token del header.
+            let token = req.header("Authorization");
+            token = token.split(" ")[1]; //Separo el Bearer {token} para solo quedarme con el token.
+            const { order_id, description, claim_type } = req.body;
+            yield (0, claim_1.saveClaim)(token, order_id, description, claim_type);
             res.status(200).json({ message: "Reclamo creado exitosamente" });
         }
         catch (error) {

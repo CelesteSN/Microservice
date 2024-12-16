@@ -28,8 +28,11 @@ export async function getClaimById(req: Request, res: Response) {
 
 export async function createClaim(req: Request, res: Response) {
     try {
-        const {order_id, user_id, description, claim_type} = req.body;
-       await saveClaim(order_id, user_id, description, claim_type); 
+           //Tomo el token del header.
+           let token: any = req.header("Authorization");
+           token = token.split(" ")[1] //Separo el Bearer {token} para solo quedarme con el token.
+        const {order_id, description, claim_type} = req.body;
+       await saveClaim(token, order_id, description, claim_type); 
         res.status(200).json({message: "Reclamo creado exitosamente"});
     }catch (error) {
         res.status(500).json({error: "Internal server error"});

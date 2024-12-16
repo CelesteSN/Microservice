@@ -16,10 +16,10 @@ exports.redisInit = redisInit;
 exports.setUser = setUser;
 exports.getUser = getUser;
 exports.deleteSessionUser = deleteSessionUser;
-const error_user_1 = __importDefault(require("../Error/error_user"));
+const errorUser_1 = __importDefault(require("../errors/errorUser"));
 const redis_1 = require("redis");
-const Environments_1 = require("../Config/Environments");
-const redisEnv = (0, Environments_1.environmentsConfig)();
+const environments_1 = require("../config/environments");
+const redisEnv = (0, environments_1.environmentsConfig)();
 let clienteRedis;
 function redisInit() {
     try {
@@ -60,7 +60,7 @@ function getUser(token) {
         }
         catch (err) {
             console.log(err.message);
-            throw error_user_1.default.USER_NOT_FOUND_REDIS;
+            throw errorUser_1.default.USER_NOT_FOUND_REDIS;
         }
     });
 }

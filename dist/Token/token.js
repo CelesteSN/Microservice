@@ -14,22 +14,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateToken = validateToken;
 exports.invalidateToken = invalidateToken;
-const Environments_1 = require("../Config/Environments");
+const environments_1 = require("../config/environments");
 const axios_1 = __importDefault(require("axios"));
-const UserRedis_1 = require("../Redis/UserRedis");
-const env = (0, Environments_1.environmentsConfig)();
+const userRedis_1 = require("../redis/userRedis");
+const env = (0, environments_1.environmentsConfig)();
 function validateToken(token) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //Busco la sesión del usuario en la caché.
-            let userCache = yield (0, UserRedis_1.getUser)(token);
+            let userCache = yield (0, userRedis_1.getUser)(token);
             if (userCache) {
                 return true;
             }
             // Si el token no está en la caché, lo busco en el servicio de auth.
             let responseSaveCacheUser = yield axios_1.default.get(`${env.securityServer}/v1/users/current`, { headers: { "Authorization": `bearer ${token}` } })
                 .then((response) => __awaiter(this, void 0, void 0, function* () {
-                if (yield (0, UserRedis_1.setUser)(token, response.data)) {
+                if (yield (0, userRedis_1.setUser)(token, response.data)) {
                     return true;
                 }
                 return false;
@@ -50,14 +50,13 @@ function invalidateToken(logout) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let token = logout.message.split(" ")[1]; //Separo el Bearer {token} para solo quedarme con el token.
-            let existUser = yield (0, UserRedis_1.getUser)(token);
+            let existUser = yield (0, userRedis_1.getUser)(token);
             if (existUser) {
-                if (yield (0, UserRedis_1.deleteSessionUser)(token)) {
+                if (yield (0, userRedis_1.deleteSessionUser)(token)) {
                     console.log("Invalidate session token:", token);
                 }
-            }
-            else {
-                console.log("User be not in cache");
+                // }else{
+                //   console.log("User be not in cache")
             }
         }
         catch (err) {
