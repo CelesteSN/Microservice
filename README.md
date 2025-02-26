@@ -25,10 +25,8 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
   - Crear claim con: user_id, order_id, claim_type, description, created_date: fecha de hoy.
   - Asignar al estado el nombre "Pending" y colocar isActive en true y fecha actual.
   - Guardar el reclamo
-  - Enviar mensaje "El reclamo se creó exitosamente".
-  - 
-  - Se envía un mensaje "send_notification", con tipo claim_created_sussesfuly, para que el servicio de notification realice la notificación correspondiente.
-
+  - Se envía un mensaje "send_notification", con tipo nuevo reclamo, para que el servicio de notification realice la notificación al administrador.
+  - Enviar mensaje "El reclamo creado exitosamente, fue notificado el administrador".
  
 #### CU-002: Eliminar Reclamo
 **Descripción:
@@ -44,16 +42,11 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 - Buscar el reclamo con claim_id ingresado y
 - Validar último estado estado = "Pending"
 - Eliminar reclamo
-- Enviar mensaje "El reclamo se creó exitosamente".
-
-
-
-- Se envía un mensaje "send_notification", con tipo claim_deleted, para que el servicio de notification realice la notificación correspondiente.
-
+- Enviar mensaje "El reclamo se eliminó exitosamente".
   
 #### CU-003: Visualizar reclamos
 **Descripción:
-** Permite al usuario o administrador visualizar el listado de  reclamos, pudiendo filtrarlos por estado.
+** Permite al usuario o administrador visualizar el listado de  reclamos, pudiendo filtrarlos por estado y por número de orden.
 
 **Precondición:**
 - Que el usuario tenga un token válido.
@@ -94,10 +87,8 @@ Permite al Admin resolver el reclamo.
 - setear answer a Claim
 - setear resolution_date = fecha de hoy
 - Guardar el reclamo
+- Se envía un mensaje "send_notification", con tipo reclamo resuelto, para que el servicio de notification realice la notificación correspondiente.
 - Enviar mensaje: Eecalmo resuelto.
-
-- 
-- Se envía un mensaje "send_notification", con tipo claim_accepted, para que el servicio de notification realice la notificación correspondiente.
 
 **Camino Alternativo:**
 - Si status es "Canceled"
@@ -107,12 +98,10 @@ Permite al Admin resolver el reclamo.
 - setear answer a Claim
 - setear resolution_date = fecha de hoy
 - Guardar el reclamo
+- Se envía un mensaje "send_notification", con tipo reclamo en proceso, para que el servicio de notification realice la notificación correspondiente.
 - Enviar mensaje: Eecalmo resuelto.
 
-- Se envía un mensaje "send_notification", con tipo claim_canceled, para que el servicio de notification realice la notificación correspondiente.
-
-
-#### CU-005: Solicitar cancelacion de compra- RabbitMq
+#### CU-005: Solicitar cancelacion de compra- 
 **Descripción:** Permite al usuario cancelar la compra realizada
 
 **Precondición:**
@@ -186,6 +175,8 @@ Permite al Admin resolver el reclamo.
 "claim_type_product_breakage": "Product breakage",
 "claim_type_insatisfaction": "insatisfaction",
 "claim_type_warranty: "Warranty",
+"claim_type_warranty: "Other",
+
 }
 
 
@@ -378,23 +369,40 @@ Permite al Admin resolver el reclamo.
       ```json
       { "error_message": "{error_message}" }
       ```
+
+      
 ### Interfaz asincronica (rabbit)
-**Cancelación de la orden:**
-Envia por medio del exchange direct claim_accepted a través de la queue claim_order_canceled body
-  ```json
-{
-	"orderId": "23423",
-	"userId": "23423",
-	"status": "Canceled"
-}
-  ```
+
+
 **Pedido de notificación:**
-Envía por medio del exchange direct send_notification a través de la queue claim_pending_return body
+Envía por medio del exchange direct notification  a través de la queue send_notification body
   ```json
 
 {
-	"notificationType": "claim_pending_return",
-   	 "userId": "234123",
-	"orderId": "12341324"
+	"orderId": "12341324",
+	"claimId": "12341324",
+	"action": "Nuevo reclamo"
 }
   ```
+ ```json
+{
+	"orderId": "12341324",
+	"claimId": "12341324",
+	"action": "En proceso"
+}
+  ```
+ ```json
+{
+	"orderId": "12341324",
+	"claimId": "12341324",
+	"action": "Reclamo resuelto"
+}
+  ```
+**Cancelación de la orden:**
+Recibe por medio del exchange direct Ordenes_exxhange a través de la queue ordenes_canceladas body
+  ```json
+{
+	"orderId": "23423"
+}
+  ```
+
