@@ -1,6 +1,6 @@
 ## Microservicio: Reclamos sobre órdenes
 
-El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el reclamo correctamente. El administrador consulta y resuleve los reclamos
+El usuario realiza reclamo/s sobre una orden, permitiendo cancelarla si no se resuelve el reclamo correctamente. El administrador consulta y resuleve los reclamos
 
 
 ### Casos de Uso
@@ -120,14 +120,11 @@ Permite al Admin resolver el reclamo.
 - Busco en claim_state_enum el estado "Discharged"
 - Guardo un state: stateName: "Discharged" , isActive: true, created_date: fecha de hoy 
 
-
-
-
-  
   
 ### Diagrama de estados del reclamo
 
-![image](https://github.com/user-attachments/assets/eaf42ed0-3781-4f40-bb6b-b8f7b92d157c)
+![image](https://github.com/user-attachments/assets/051c09bb-9833-4020-b895-e076fe7fda04)
+
 
 
 
@@ -399,7 +396,7 @@ Envía por medio del exchange direct notification  a través de la queue send_no
 }
   ```
 **Cancelación de la orden:**
-Recibe por medio del exchange direct Ordenes_exxhange a través de la queue ordenes_canceladas body
+Recibe por medio del exchange direct claim_exxhange a través de la queue ordenes_canceladas body
   ```json
 {
 	"orderId": "23423"
