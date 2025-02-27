@@ -1,12 +1,13 @@
 ## Microservicio: Reclamos sobre órdenes
 
-El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el reclamo correctamente. El administrador consulta y resuleve los reclamos
+El usuario realiza reclamo/s sobre una orden, permitiendo cancelarla si no se resuelve el reclamo correctamente. El administrador consulta y resuleve los reclamos
 
 
 ### Casos de Uso
 
 #### CU-001: Crear Reclamo
-**Descripción:** Permite que el usuario pueda realizar un reclamo sobre una orden.
+**Descripción:
+** Permite que el usuario pueda realizar un reclamo sobre una orden.
 
 **Precondición:**
 - Que haya realizado una compra (que exista la orden y que este en estado "payment_defined").
@@ -17,16 +18,19 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
   - Obtener el `id_user` del usuario usando el token del usuario.
   - Validar que el campo `claim_description` sea distinto de null.
   - Validar que la cantidad de palabras sea menor a 400 y mayor de 5.
-  - Validar que el campo `claim_type` sea distinto de null.
-  - Obtener la Orden mediante el envió del mensaje al servicio de Order con la propiedad `_id_order` y el `state = PAYMENT_DEFINED`.
+  - Validar que el campo `claim_type` sea distinto de null y que sea un tipo válido.
+  - Obtener la Orden a traves del endpoind  rest del servicio de Order por id.
+  - Validar que la orden este en estado `PAYMENT_DEFINED`.
   - Obtener el estado "Pending" desde la Enum  `claim_state_enum`.
   - Crear claim con: user_id, order_id, claim_type, description, created_date: fecha de hoy.
-  - Crear `claim_state_history` con el id del nuevo reclamo y claim_state_pending: "Pending" y created_date: fecha de hoy.
-  - Se envía un mensaje "send_notification", con tipo claim_created_sussesfuly, para que el servicio de notification realice la notificación correspondiente.
-
+  - Asignar al estado el nombre "Pending" y colocar isActive en true y fecha actual.
+  - Guardar el reclamo
+  - Se envía un mensaje "send_notification", con tipo nuevo reclamo, para que el servicio de notification realice la notificación al administrador.
+  - Enviar mensaje "El reclamo creado exitosamente, fue notificado el administrador".
  
 #### CU-002: Eliminar Reclamo
-**Descripción:** Permite que el usuario pueda eliminar el reclamo realizado.
+**Descripción:
+** Permite que el usuario pueda eliminar el reclamo realizado.
 
 **Precondición:**
 - Que exista un reclamo creado y en estado "Pending"
@@ -35,18 +39,14 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 **Camino Normal:**
 - Me llega el claim_id como parametro de la ruta.
 - Obtener el `id_user` del usuario usando el token.
-- Buscar el reclamo con claim_id ingresado y ultimo estado estado = "Pending"
-- buscar el estado `Deleted` en claim_state_enum
-- crear una nueva instancia de state_claim_history con:
-  - claim_state_history_claim_id: claim_id
-  - claim_state_history_name : "Deleted"
-  - created_date: fecha de hoy
-- guardar la instancia
-- Se envía un mensaje "send_notification", con tipo claim_deleted, para que el servicio de notification realice la notificación correspondiente.
-
+- Buscar el reclamo con claim_id ingresado y
+- Validar último estado estado = "Pending"
+- Eliminar reclamo
+- Enviar mensaje "El reclamo se eliminó exitosamente".
   
 #### CU-003: Visualizar reclamos
-**Descripción:** Permite al usuario o administrador visualizar el listado de  reclamos, pudiendo filtrarlos por estado.
+**Descripción:
+** Permite al usuario o administrador visualizar el listado de  reclamos, pudiendo filtrarlos por estado y por número de orden.
 
 **Precondición:**
 - Que el usuario tenga un token válido.
@@ -55,7 +55,7 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 
 **Camino Normal:**
 - Obtener el `id_user` del usuario usando el token.
-- se verifica si llego en el query params un estado, para realizar el filtrado
+- Verifica si llego en el query params un estado, para realizar el filtrado
 - Con el token recibido solicito a traves del envio de un mensaje al servicio de Auth el usuario logueado.
 - verifico si en el atributo permissions(de tipo array de string) hay un string de tipo "admin"
 - Si no existe (el usuario es cliente)
@@ -64,12 +64,13 @@ El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el
 
 **Camino Alternativo:**
 Si existe ( el usuario es Administador)
-- Buscar todos los reclamos (si se ingresó un estado filtro, se realiza la busqueda teniendo en cuenta el estado), por defecto solo busca los que tienen estado pendiente
+- Buscar todos los reclamos (si se ingresó un estado filtro, se realiza la busqueda teniendo en cuenta el estado)
 - mostrar: Nro de reclamo, nro de orden, tipo de reclamo,  descripción, answer y estado
 
 
 #### CU-004: Resolver reclamo
-**Descripción:** Permite al Admin resolver el reclamo.
+**Descripción:**
+Permite al Admin resolver el reclamo.
 
 **Precondición:**
 - Que el usuario tenga un token válido.
@@ -79,23 +80,28 @@ Si existe ( el usuario es Administador)
 **Camino Normal:**
 - Obtener el `id_user` del usuario usando el token.
 - Buscar buscar el reclamo para el claim_id recibido
-- Si isAccepted = true
+- Si status = "Accepted"
 - Obtener el estado "Accepted" de la Enum claim_state_enum
-- crear instancia de claim_state_history: con order_id, claim_state: Accepted, created_date: date Now,
+- Por cada estado existente, colocar la variable isActive en false
+- crear status con: nombre: Accepted, isActive: true created_date: date Now,
 - setear answer a Claim
 - setear resolution_date = fecha de hoy
-- Se envía un mensaje "send_notification", con tipo claim_accepted, para que el servicio de notification realice la notificación correspondiente.
+- Guardar el reclamo
+- Se envía un mensaje "send_notification", con tipo reclamo resuelto, para que el servicio de notification realice la notificación correspondiente.
+- Enviar mensaje: Eecalmo resuelto.
 
 **Camino Alternativo:**
-- Si isAccepted = false
+- Si status es "Canceled"
 - Obtener el estado "Canceled" de la Enum claim_state_enum
-- crear instancia de claim_state_history: con order_id, claim_state:Canceled, created_date: date Now,
+- Por cada estado existente, colocar la variable isActive en false
+- crear status con: nombre: Accepted, isActive: true created_date: date Now,
 - setear answer a Claim
 - setear resolution_date = fecha de hoy
-- Se envía un mensaje "send_notification", con tipo claim_canceled, para que el servicio de notification realice la notificación correspondiente.
+- Guardar el reclamo
+- Se envía un mensaje "send_notification", con tipo reclamo en proceso, para que el servicio de notification realice la notificación correspondiente.
+- Enviar mensaje: Eecalmo resuelto.
 
-
-#### CU-005: Solicitar cancelacion de compra- RabbitMq
+#### CU-005: Solicitar cancelacion de compra- 
 **Descripción:** Permite al usuario cancelar la compra realizada
 
 **Precondición:**
@@ -106,21 +112,19 @@ Si existe ( el usuario es Administador)
 
 **Camino Normal:**
 - Obtener el `id_user` del usuario usando el token.
-- Buscar el reclamo para el claim_id recibido cuyo último estado "Accepted"
+- Buscar el reclamo para el claim_id recibido
+- Validar que el último estado sea "Accepted"
 - Obtener el order_id asociado
 - Enviar mensaje asincrono al servico de Order, para que procese la cancelación.
 - Se envía un mensaje asincrono "send_notification", con tipo claim_pending_return, para que el servicio de notification realice la notificación correspondiente.
 - Busco en claim_state_enum el estado "Discharged"
-- creo una instancia de claim_state_history con: claim_id, stateName: "Discharged" , created_date: fecha de hoy 
+- Guardo un state: stateName: "Discharged" , isActive: true, created_date: fecha de hoy 
 
-
-
-
-  
   
 ### Diagrama de estados del reclamo
 
-![image](https://github.com/user-attachments/assets/eaf42ed0-3781-4f40-bb6b-b8f7b92d157c)
+![image](https://github.com/user-attachments/assets/051c09bb-9833-4020-b895-e076fe7fda04)
+
 
 
 
@@ -134,21 +138,21 @@ Si existe ( el usuario es Administador)
 | `userId`         | String | Identificador del usuario                                                       |
 | `claim_number`   | String | Para el negocio                                                                 |
 | `claim_type`     | String | tipo de reclamo                                                                 |
-
-| `claim_description`    | String | Campo para que el cliente agregue un texto explicando el motivo del reclamo     |
-| `resolution_date` | Date   | Campo que contiene la fecha de resolución del reclamo, inicialmente vacío       |
+| `status `        | ClaimStatusHistory[] | Lista de estados por los que ha pasado un reclamo                 |
+| `claim_description`| String | Campo para que el cliente agregue un texto explicando el motivo del reclamo   |
+| `resolution_date` | Date   | Campo que contiene la fecha de resolución del reclamo, inicialmente vacío      |
 | `answer`          | string | Campo que contiene un link a un archivo que continene doumentación adjunta para fundamentar la decisión, inicialmente vacio|
 | `createdDate`    | Date   | Contiene la fecha de creación del reclamo                                       |
 | `editedDate`     | Date   | Contiene la fecha de modificación del reclamo                                   |
 | `deletedDate`    | Date   | Contiene la fecha de eliminación del reclamo                                    |
 
 
-#### claim_state_history
+#### claimStatusistory
 | Column                   | Type   | Description                                        |
 |--------------------------|--------|----------------------------------------------------|
-| `claim_state_history_id` | String | Identificador del estado por el que ha pasado el reclamo |
+| `claimStatusHistory_id`  | String | Identificador del estado por el que ha pasado el reclamo |
 | `claim_state_name`       | String | Estado                                             |
-| `claim_id`               | String | Identificador del reclamo                          |
+| `isActive`               | String | Identificador del reclamo                          |
 | `created_date`           | Date   | Fecha en que se porduce el cambio de estado        |
 
 
@@ -168,6 +172,8 @@ Si existe ( el usuario es Administador)
 "claim_type_product_breakage": "Product breakage",
 "claim_type_insatisfaction": "insatisfaction",
 "claim_type_warranty: "Warranty",
+"claim_type_warranty: "Other",
+
 }
 
 
@@ -360,23 +366,40 @@ Si existe ( el usuario es Administador)
       ```json
       { "error_message": "{error_message}" }
       ```
+
+      
 ### Interfaz asincronica (rabbit)
-**Cancelación de la orden:**
-Envia por medio del exchange direct claim_accepted a través de la queue claim_order_canceled body
-  ```json
-{
-	"orderId": "23423",
-	"userId": "23423",
-	"status": "Canceled"
-}
-  ```
+
+
 **Pedido de notificación:**
-Envía por medio del exchange direct send_notification a través de la queue claim_pending_return body
+Envía por medio del exchange direct notification  a través de la queue send_notification body
   ```json
 
 {
-	"notificationType": "claim_pending_return",
-   	 "userId": "234123",
-	"orderId": "12341324"
+	"orderId": "12341324",
+	"claimId": "12341324",
+	"action": "Nuevo reclamo"
 }
   ```
+ ```json
+{
+	"orderId": "12341324",
+	"claimId": "12341324",
+	"action": "En proceso"
+}
+  ```
+ ```json
+{
+	"orderId": "12341324",
+	"claimId": "12341324",
+	"action": "Reclamo resuelto"
+}
+  ```
+**Cancelación de la orden:**
+Recibe por medio del exchange direct claim_exxhange a través de la queue ordenes_canceladas body
+  ```json
+{
+	"orderId": "23423"
+}
+  ```
+
