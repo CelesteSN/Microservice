@@ -1,8 +1,8 @@
-class ClaimStateEnum{
-    static readonly CLAIM_STATE_PENDING: 'PENDING';
-    static readonly CLAIM_STATE_DELETED: 'DELETED';
-    static readonly CLAIM_STATE_ACCEPTED: 'ACCEPTED';
-    static readonly CLAIM_STATE_CANCELED: 'CANCELED';
-    static readonly CLAIM_STATE_DISCHARGED: 'DISCHARGED';
+export enum ClaimStateEnum{
+     CLAIM_STATE_PENDING ='Pending',
+    CLAIM_STATE_DELETED ='Deleted',
+    CLAIM_STATE_ACCEPTED = 'Accepted',
+    CLAIM_STATE_CANCELED = 'Canceled',
+    CLAIM_STATE_INPROGRESS = 'InProgress',
+    CLAIM_STATE_DISCHARGED = 'Discharged'
 }
- export default ClaimStateEnum;

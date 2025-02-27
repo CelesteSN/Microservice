@@ -2,8 +2,11 @@ import { modelOptions, getModelForClass, prop, Ref } from "@typegoose/typegoose"
 import  {ClaimStatusHistory}  from "./claimStatusHistory.model";
 
 
-@modelOptions({ schemaOptions: {timestamps: true }})
+//@modelOptions({ schemaOptions: {timestamps: true }})
 class Claim {
+    @prop({ required: true })
+    claim_id: string;
+
 @prop({ required: true })
 order_id: string;
 
@@ -21,6 +24,15 @@ order_id: string;
 
     @prop({required: false})
     answer: string;
+
+    @prop({required: false})
+    admin: string;
+
+    @prop({required: true})
+    dateCreated: Date;
+
+    @prop({required: false})
+    dateUpdated: Date;
 
     // @prop({ref: () => ClaimStatusHistory})
     // status: Ref<ClaimStatusHistory> [];

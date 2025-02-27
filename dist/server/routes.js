@@ -8,6 +8,7 @@ const express_1 = __importDefault(require("express"));
 const claim_controller_1 = require("../controllers/claim.controller");
 const router = express_1.default.Router();
 exports.router = router;
+//router.put('/v1/claims/low', cancelClaims);
 router.get('/v1/claims', claim_controller_1.getAllClaims);
 router.get('/v1/claims/:id', claim_controller_1.getClaimById);
 router.post('/v1/claims', claim_controller_1.createClaim);

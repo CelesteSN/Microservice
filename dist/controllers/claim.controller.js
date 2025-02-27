@@ -9,23 +9,35 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllClaims = getAllClaims;
+exports.updateClaim = exports.getAllClaims = void 0;
 exports.getClaimById = getClaimById;
 exports.createClaim = createClaim;
-exports.updateClaim = updateClaim;
 exports.deleteClaim = deleteClaim;
+exports.cancelClaims = cancelClaims;
 const claim_1 = require("../claim/claim");
-function getAllClaims(req, res) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const claims = yield (0, claim_1.getClaims)();
-            res.status(200).json(claims);
+const customError_1 = require("../handlers/customError");
+const getAllClaims = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        //obtengo el fitro por estado
+        const status = req.query.status || '';
+        //obtengo filtro por nro de orden
+        const order_id = req.query.oder_id || '';
+        //Tomo el token del header.
+        let token = req.header("Authorization");
+        token = token.split(" ")[1]; //Separo el Bearer {token} para solo quedarme con el token.
+        const claims = yield (0, claim_1.getClaims)(token, status, order_id);
+        res.status(200).json({ claims });
+    }
+    catch (error) {
+        if (error instanceof customError_1.CustomError) {
+            res.status(error.statusCode).json({ error: error.message });
         }
-        catch (error) {
+        else {
             res.status(500).json({ error: "Internal server error" });
         }
-    });
-}
+    }
+});
+exports.getAllClaims = getAllClaims;
 function getClaimById(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -46,27 +58,44 @@ function createClaim(req, res) {
             let token = req.header("Authorization");
             token = token.split(" ")[1]; //Separo el Bearer {token} para solo quedarme con el token.
             const { order_id, description, claim_type } = req.body;
-            yield (0, claim_1.saveClaim)(token, order_id, description, claim_type);
-            res.status(200).json({ message: "Reclamo creado exitosamente" });
+            const claimId = yield (0, claim_1.saveClaim)(token, order_id, description, claim_type);
+            //Valido si ocurrido algún error en el proceso de crear un reporte de una review.
+            res.status(200).json({ message: "Reclamo" + " " + claimId + " " + "creado exitosamente, el administrador será notificado en 24 hs" });
         }
         catch (error) {
-            res.status(500).json({ error: "Internal server error" });
+            if (error instanceof customError_1.CustomError) {
+                res.status(error.statusCode).json({ error: error.message });
+            }
+            else {
+                res.status(500).json({ error: "Internal server error" });
+            }
         }
     });
 }
-function updateClaim(req, res) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { id } = req.params;
-            const { status, answer } = req.body;
-            yield (0, claim_1.editClaim)(id, status, answer);
-            res.status(200).json({ message: "Reclamo resuelto exitosamente" });
+const updateClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { status, answer } = req.body;
+        console.log(id, status, answer);
+        //Tomo el token del header.
+        let token = req.header("Authorization");
+        token = token.split(" ")[1]; //Separo el Bearer {token} para solo quedarme con el token.
+        const claimEdited = yield (0, claim_1.editClaim)(id, status, answer, token);
+        if (status === "InProgress") {
+            res.status(200).json({ message: "Reclamo en proceso, el usuario fue notificado" });
         }
-        catch (error) {
+        res.status(200).json({ message: "Reclamo resuelto exitosamente, el usuario fue notificado" });
+    }
+    catch (error) {
+        if (error instanceof customError_1.CustomError) {
+            res.status(error.statusCode).json({ error: error.message });
+        }
+        else {
             res.status(500).json({ error: "Internal server error" });
         }
-    });
-}
+    }
+});
+exports.updateClaim = updateClaim;
 function deleteClaim(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -75,7 +104,30 @@ function deleteClaim(req, res) {
             res.status(200).json({ message: "Reclamo eliminado exitosamente" });
         }
         catch (error) {
-            res.status(500).json({ error: "Internal server error" });
+            if (error instanceof customError_1.CustomError) {
+                res.status(error.statusCode).json({ error: error.message });
+            }
+            else {
+                res.status(500).json({ error: "Internal server error" });
+            }
+        }
+    });
+}
+function cancelClaims(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // const { id } = req.params;
+            const { order_id } = req.body;
+            yield (0, claim_1.lowClaims)(order_id);
+            res.status(200).json({ message: "Los reclamos asociados a la orden número:" + " " + order_id + " " + "fuerom cancelados correctamente" });
+        }
+        catch (error) {
+            if (error instanceof customError_1.CustomError) {
+                res.status(error.statusCode).json({ error: error.message });
+            }
+            else {
+                res.status(500).json({ error: "Internal server error" });
+            }
         }
     });
 }

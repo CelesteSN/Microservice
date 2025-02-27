@@ -3,6 +3,9 @@ import { getModelForClass, modelOptions, prop } from "@typegoose/typegoose";
 @modelOptions({ schemaOptions: {timestamps: true, _id: false} })
  export class ClaimStatusHistory {
 
+    // @prop({ required: true })
+    // statusId: string;
+
     @prop({ required: true })
     statusName: string;
 
