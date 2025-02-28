@@ -1,7 +1,7 @@
 ## Microservicio: Reclamos sobre órdenes
 
 El usuario realiza reclamo/s sobre una orden, permitiendo cancelarla si no se resuelve el reclamo correctamente. El administrador consulta y resuleve los reclamos.
-Ademas permite dar de baja los reclamos, cuando el usuario considera que la solución al reclamo no le satisface.
+
 
 
 ### Casos de Uso
