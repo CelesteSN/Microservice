@@ -1,24 +1,22 @@
 import amqp from "amqplib/callback_api";
-import { EventEmitter } from 'node:events';
 import { environmentsConfig } from "../../config/environments";
-import { IPropsConsumer, IPropsLogoutConsumer } from "../../interfaces/orderRabbit.interface";
-import { IRabbitMessage } from "../../interfaces/rabbit.interface";
-import { lowClaims } from "../../claim/claim";
+import { IPropsConsumer } from "../../interfaces/rabbit.interface";
+import { dismissClaims } from "../../claim/claim";
 
-//const emitterResponseArticleBought = new EventEmitter();
+
 
 const env = environmentsConfig();
 
 
 //Función que se inicializará y quedara escuchando en el canal para resultados que envie el servicio de order.
-export async function consumerReportServer(){
+export async function consumerClaimServer(){
     const propsConsumer = {
       exchange: 'claims_exchange',
       queue: 'ordenes_canceladas',
       routingKey: 'discharged_claims'
     }
     //Creo el consumidor y le paso la funcion que ejecutara cuando llega un mensaje.
-    await createConsumer(propsConsumer, lowClaims);
+    await createConsumer(propsConsumer, dismissClaims);
   }
 
 
@@ -45,9 +43,10 @@ export async function createConsumer(propsConsumer: IPropsConsumer, functionType
                     channel.consume(queue.queue, (msg) => {
                         if(msg){
                             const messageContent = msg.content.toString();
-                               // const content = JSON.parse(messageContent);
-                                console.log(messageContent);
-                            return functionType(messageContent);
+                             const content = JSON.parse(messageContent);
+                             const ordenId = content.ordenId;
+                                console.log(ordenId);
+                            return functionType(ordenId);
                         }
                     },{
                         noAck: true

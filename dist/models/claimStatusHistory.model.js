@@ -22,8 +22,12 @@ __decorate([
     (0, typegoose_1.prop)({ required: true }),
     __metadata("design:type", Boolean)
 ], ClaimStatusHistory.prototype, "isActive", void 0);
+__decorate([
+    (0, typegoose_1.prop)({ required: true }),
+    __metadata("design:type", Date)
+], ClaimStatusHistory.prototype, "created", void 0);
 exports.ClaimStatusHistory = ClaimStatusHistory = __decorate([
-    (0, typegoose_1.modelOptions)({ schemaOptions: { timestamps: true, _id: false } })
+    (0, typegoose_1.modelOptions)({ schemaOptions: { _id: false } })
 ], ClaimStatusHistory);
 const ClaimStatusHistoryModel = (0, typegoose_1.getModelForClass)(ClaimStatusHistory);
 exports.default = ClaimStatusHistoryModel;

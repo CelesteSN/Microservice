@@ -54,7 +54,7 @@ function getClaimById(req, res) {
 function createClaim(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            //Tomo el token del header.
+            //Tomo el bearer token del header.
             let token = req.header("Authorization");
             token = token.split(" ")[1]; //Separo el Bearer {token} para solo quedarme con el token.
             const { order_id, description, claim_type } = req.body;
@@ -82,9 +82,11 @@ const updateClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         token = token.split(" ")[1]; //Separo el Bearer {token} para solo quedarme con el token.
         const claimEdited = yield (0, claim_1.editClaim)(id, status, answer, token);
         if (status === "InProgress") {
-            res.status(200).json({ message: "Reclamo en proceso, el usuario fue notificado" });
+            res.status(200).json({ message: "Claim in proces, the user was notified" });
         }
-        res.status(200).json({ message: "Reclamo resuelto exitosamente, el usuario fue notificado" });
+        else {
+            res.status(200).json({ message: "Claim resolved succesfuly, the user was notified" });
+        }
     }
     catch (error) {
         if (error instanceof customError_1.CustomError) {
@@ -101,7 +103,7 @@ function deleteClaim(req, res) {
         try {
             const { id } = req.params;
             yield (0, claim_1.lowClaim)(id);
-            res.status(200).json({ message: "Reclamo eliminado exitosamente" });
+            res.status(200).json({ message: "Clain deleted succesfuly" });
         }
         catch (error) {
             if (error instanceof customError_1.CustomError) {
@@ -118,8 +120,8 @@ function cancelClaims(req, res) {
         try {
             // const { id } = req.params;
             const { order_id } = req.body;
-            yield (0, claim_1.lowClaims)(order_id);
-            res.status(200).json({ message: "Los reclamos asociados a la orden número:" + " " + order_id + " " + "fuerom cancelados correctamente" });
+            yield (0, claim_1.dismissClaims)(order_id);
+            res.status(200).json({ message: "Claims associated with order number:" + " " + order_id + " " + "was canceled succesfuly" });
         }
         catch (error) {
             if (error instanceof customError_1.CustomError) {

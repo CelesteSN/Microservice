@@ -46,14 +46,14 @@ function validateToken(token) {
     });
 }
 // Función para eliminar una sesión
-function invalidateToken(logout) {
+function invalidateToken(tokenLogout) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            let token = logout.message.split(" ")[1]; //Separo el Bearer {token} para solo quedarme con el token.
-            let existUser = yield (0, userRedis_1.getUser)(token);
+            // let token = logout.message.split(" ")[1] //Separo el Bearer {token} para solo quedarme con el token.
+            let existUser = yield (0, userRedis_1.getUser)(tokenLogout);
             if (existUser) {
-                if (yield (0, userRedis_1.deleteSessionUser)(token)) {
-                    console.log("Invalidate session token:", token);
+                if (yield (0, userRedis_1.deleteSessionUser)(tokenLogout)) {
+                    console.log("Invalidate session token:", tokenLogout);
                 }
                 // }else{
                 //   console.log("User be not in cache")

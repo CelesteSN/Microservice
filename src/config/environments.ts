@@ -8,7 +8,7 @@ export function environmentsConfig(): Config {
     if(!config){
         config = {
             port: env.SERVER_PORT || "3150",            
-            mongoDb: env.MONGO_URL || "mongodb://localhost:27017/reclamoDB",
+            mongoDb: env.MONGO_URL || "mongodb://localhost/reclamoDB",
             //mongoDb: env.MONGO_URL || "mongodb://localhost:27017",
             securityServer: env.AUTH_SERVICE_URL || "http://localhost:3000",
             rabbitUrl: env.RABBIT_URL || "amqp://localhost",

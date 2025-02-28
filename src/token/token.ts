@@ -35,13 +35,13 @@ export async function validateToken(token: string) {
 }
 
 // Función para eliminar una sesión
-export async function invalidateToken(logout: ITokenLogout) {
+export async function invalidateToken(tokenLogout: string) {
   try{
-    let token = logout.message.split(" ")[1] //Separo el Bearer {token} para solo quedarme con el token.
-    let existUser = await getUser(token);
+   // let token = logout.message.split(" ")[1] //Separo el Bearer {token} para solo quedarme con el token.
+    let existUser = await getUser(tokenLogout);
     if (existUser) {
-      if(await deleteSessionUser(token)){
-        console.log("Invalidate session token:", token);
+      if(await deleteSessionUser(tokenLogout)){
+        console.log("Invalidate session token:", tokenLogout);
       }
     // }else{
     //   console.log("User be not in cache")

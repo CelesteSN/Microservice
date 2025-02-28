@@ -1,6 +1,6 @@
 import { getModelForClass, modelOptions, prop } from "@typegoose/typegoose";
 
-@modelOptions({ schemaOptions: {timestamps: true, _id: false} })
+@modelOptions({ schemaOptions: { _id: false} })
  export class ClaimStatusHistory {
 
     // @prop({ required: true })
@@ -11,6 +11,11 @@ import { getModelForClass, modelOptions, prop } from "@typegoose/typegoose";
 
     @prop({ required: true })
     isActive: boolean;
+
+    @prop({ required: true })
+    created: Date;
+
+  
 
 
 }

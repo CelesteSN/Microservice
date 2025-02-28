@@ -18,6 +18,6 @@ export interface IUserReq extends express.Request{
 }
 
 export interface ITokenLogout{
-    type: "string",
+   // type: "logout",
     message: "string"
 }

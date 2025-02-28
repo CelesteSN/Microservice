@@ -1,19 +1,15 @@
 
-import e from "cors";
+
 import Claim from "../models/claim.model";
 import { CustomError } from '../handlers/customError';
-//import  ClaimStatusHistory  from "../models/claimStatusHistory.model";
-import mongoose, { get, set } from "mongoose";
-import { error } from "winston";
 import { getUser } from "../redis/userRedis";
-import { setUser } from "../redis/userRedis";
 import { IUser } from "../interfaces/userReq.interface";
 import { ClaimStateEnum } from "../enums/claimState.enum";
-import errorClaim from "../errors/errorClaim";
 import { ClaimTtpeEnum } from "../enums/claimType.enum";
 import { randomUUID } from "node:crypto";
 import axios from "axios";
 import { enviarMensaje } from "../rabbit/emitter/emiter.rabbit";
+
 
 
 
@@ -37,12 +33,12 @@ export async function saveClaim(token: string, orderId: string, descr: string, c
     }
 
     //valido que el tipo de reclamo sea un tipo valido
-    // if (!(Object.values(ClaimTtpeEnum).includes(claimType as ClaimTtpeEnum))) {
-    //     throw new CustomError('NOT_VALID_CLAIM_TYPE');
-    // }
+    if (!(isValidClaimType(claimType))) {
+        throw new CustomError('NOT_VALID_CLAIM_TYPE');
+    }
 
 
-    //tomo el _id_user del token validado en el middleware
+    //tomo el userId del token validado en el middleware
     const user: IUser = await getUser(token);
     let _id_user = user.id;
 
@@ -58,9 +54,9 @@ export async function saveClaim(token: string, orderId: string, descr: string, c
         throw new CustomError("NOT_VALID_ORDER_STATUS");
     }
 
-    // if(user.name !== order.user_name){
-    //     throw new CustomError("NOT_VALID_USER");
-    // }
+    if(user.id !== order.userId){
+        throw new CustomError("NOT_VALID_USER");
+    }
 
     //fecha valida
     const orderDate = new Date(order.created);
@@ -81,15 +77,16 @@ export async function saveClaim(token: string, orderId: string, descr: string, c
         description: descr,
         claim_type: claimType,
         status: [{
-            //statusId: randomUUID(),
             statusName: ClaimStateEnum.CLAIM_STATE_PENDING,
-            isActive: true
+            isActive: true,
+            created: new Date()
         }]
     });
     const mensage = {
+        type: 'Nuevo Reclamo',
         orderId: orderId,
         claimId: claim1.claim_id,
-        action: 'Nuevo Reclamo'
+        
 
     };
     await claim1.save();
@@ -169,22 +166,32 @@ export async function editClaim(id: string, status: string, ans: string, token: 
         throw new CustomError("NOT_VALID_USER");
     }
 
-    //valido que el estado sea un estado valido
+    //valido que el estado sea valido
     if (status !== ClaimStateEnum.CLAIM_STATE_ACCEPTED && status !== ClaimStateEnum.CLAIM_STATE_CANCELED && status !== ClaimStateEnum.CLAIM_STATE_INPROGRESS) {
         throw new CustomError("NOT_VALID_STATUS");
     }
-let claimEdited: any;
-    if(status === ClaimStateEnum.CLAIM_STATE_INPROGRESS){ 
-    claimEdited = await Claim.findOne({
-        "_id": id,
-        status: {
-            $elemMatch: {
-                statusName: ClaimStateEnum.CLAIM_STATE_PENDING,
-                isActive: true
+    let claimEdited: any;
+    let resolutionD: Date | null;
+    let answerAux: string;
+
+    if (status === ClaimStateEnum.CLAIM_STATE_INPROGRESS) {
+        resolutionD = null;
+        answerAux = "Su reclamo está siendo revisado por nuestro equipo"
+        claimEdited = await Claim.findOne({
+            "_id": id,
+            status: {
+                $elemMatch: {
+                    statusName: ClaimStateEnum.CLAIM_STATE_PENDING,
+                    isActive: true
+                }
             }
+        });
+    } else {
+        if(ans === ""){
+            throw new CustomError("NOT_POSSIBLE_ANSWER_CLAIM");
         }
-    });
-    }else{
+        resolutionD = new Date();
+        answerAux = ans;
         claimEdited = await Claim.findOne({
             "_id": id,
             status: {
@@ -196,10 +203,10 @@ let claimEdited: any;
         });
     }
     if (!claimEdited) {
-        throw new CustomError("NOT_EXIST_THE_CLAIM");
+        throw new CustomError("NOT_POSSIBLE_SOLVE_THE_CLAIM");
     }
 
-    claimEdited.status.forEach(async (element: { isActive: boolean }) => {
+    claimEdited.status.forEach(async (element: { isActive: boolean}) => {
         if (element.isActive) {
             element.isActive = false;
             await claimEdited?.save();
@@ -208,11 +215,12 @@ let claimEdited: any;
 
     claimEdited = await Claim.findByIdAndUpdate(id, {
         admin: user.name,
-        answer: ans,
-        resolution_date: new Date(),
+        answer: answerAux,
+        resolution_date: resolutionD,
         status: [...claimEdited.status, {
             statusName: status,
-            isActive: true
+            isActive: true,
+            created: new Date()
         }]
     }, { new: true });
 
@@ -227,22 +235,23 @@ let claimEdited: any;
     } else {
         action = 'Reclamo Resuelto';
     }
-const mensage = {
-    orderId: claimEdited.order_id,
-    claimId: claimEdited.claim_id,
-    action: action
+    const mensage = {
+        type: action,
+        orderId: claimEdited.order_id,
+        claimId: claimEdited.claim_id,
+       
 
-};
+    };
     //envío mensaje a traves de RabbitMQ para el microservicio de notificaciones
     await enviarMensaje(mensage, 'notification', 'send_notification', 'notificaciones.email');
-    return claimEdited;
+    return;
 }
 
 //funcion para eliminar un reclamo, solo el user puede eliminarlo
 export async function lowClaim(id: string) {
 
     const claim = await Claim.findById(id);
-      
+
     if (!claim) {
         throw new CustomError("NOT_POSIBLE_DELETE");
     }
@@ -255,15 +264,16 @@ export async function lowClaim(id: string) {
         throw new CustomError("CLAIM_OUT_OF_TIME");
     }
     const mensage = {
+        type: 'Reclamo Eliminado',
         orderId: claim.order_id,
         claimId: claim.claim_id,
-        action: 'Reclamo Eliminado'
+       
 
     };
     await Claim.findByIdAndDelete(id);
-   
+
     //envio mensaje a RabbitMQ para el microservicio de notificaciones
-   // await enviarMensaje(mensage, 'notification', 'send_notification', 'notificaciones.email');
+    await enviarMensaje(mensage, 'notification', 'cancel_notification', 'notificaciones.email');
 
 
     return;
@@ -275,8 +285,14 @@ function isValidClaimState(state: string): boolean {
     return Object.values(ClaimStateEnum).includes(state as ClaimStateEnum);
 }
 
+
+//función para validar si el tipo de reclamo es un tipo válido
+function isValidClaimType(type: string): boolean {
+    return Object.values(ClaimTtpeEnum).includes(type as ClaimTtpeEnum);
+}
+
 //Función para dar de baja reclamos asociados a un número de orden recibido del microservicio de ordenes a través de rabbit.
-export async function lowClaims(id: string) {
+export async function dismissClaims(id: string) {
 
     let claims = await Claim.find({
         order_id: id
@@ -285,22 +301,37 @@ export async function lowClaims(id: string) {
     if (!claims) {
         throw new CustomError("NOT_EXIST_THE_CLAIM");
     }
+
+   
+    for (let i = 0; i < claims.length; i++) {
+        const claim = claims[i];
+
+        if (claim.status[claim.status.length - 1].statusName === ClaimStateEnum.CLAIM_STATE_DISCHARGED) {
+            console.log("Los reclamos asociados a la orden" + " " + id + " " + "ya fue dado de baja");
+            return;
+        }
+    }
+
     //console.log(claims);
     //Por cada reclamo asociado a la orden
     for (let i = 0; i < claims.length; i++) {
         const claim = claims[i];
 
+
+
         //Colocar siActive en false en todos los estados activos
-        claim.status.forEach((element: { isActive: boolean }) => {
+        claim.status.forEach((element: { isActive: boolean}) => {
             if (element.isActive) {
-                element.isActive = false;
+                element.isActive = false
+                
             }
         });
 
         // Agregar el nuevo estado "Discharged"
         claim.status.push({
             statusName: ClaimStateEnum.CLAIM_STATE_DISCHARGED,
-            isActive: true
+            isActive: true,
+            created: new Date(),
         });
 
 

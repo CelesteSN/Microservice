@@ -17,11 +17,12 @@ exports.getClaims = getClaims;
 exports.claimById = claimById;
 exports.editClaim = editClaim;
 exports.lowClaim = lowClaim;
-exports.lowClaims = lowClaims;
+exports.dismissClaims = dismissClaims;
 const claim_model_1 = __importDefault(require("../models/claim.model"));
 const customError_1 = require("../handlers/customError");
 const userRedis_1 = require("../redis/userRedis");
 const claimState_enum_1 = require("../enums/claimState.enum");
+const claimType_enum_1 = require("../enums/claimType.enum");
 const node_crypto_1 = require("node:crypto");
 const axios_1 = __importDefault(require("axios"));
 const emiter_rabbit_1 = require("../rabbit/emitter/emiter.rabbit");
@@ -45,10 +46,10 @@ function saveClaim(token, orderId, descr, claimType) {
             throw new customError_1.CustomError("NULL_CLAIM_TYPE");
         }
         //valido que el tipo de reclamo sea un tipo valido
-        // if (!(Object.values(ClaimTtpeEnum).includes(claimType as ClaimTtpeEnum))) {
-        //     throw new CustomError('NOT_VALID_CLAIM_TYPE');
-        // }
-        //tomo el _id_user del token validado en el middleware
+        if (!(isValidClaimType(claimType))) {
+            throw new customError_1.CustomError('NOT_VALID_CLAIM_TYPE');
+        }
+        //tomo el userId del token validado en el middleware
         const user = yield (0, userRedis_1.getUser)(token);
         let _id_user = user.id;
         console.log(user);
@@ -60,9 +61,9 @@ function saveClaim(token, orderId, descr, claimType) {
         if (order.status !== "payment_defined") {
             throw new customError_1.CustomError("NOT_VALID_ORDER_STATUS");
         }
-        // if(user.name !== order.user_name){
-        //     throw new CustomError("NOT_VALID_USER");
-        // }
+        if (user.id !== order.userId) {
+            throw new customError_1.CustomError("NOT_VALID_USER");
+        }
         //fecha valida
         const orderDate = new Date(order.created);
         const currentDate = new Date();
@@ -80,15 +81,15 @@ function saveClaim(token, orderId, descr, claimType) {
             description: descr,
             claim_type: claimType,
             status: [{
-                    //statusId: randomUUID(),
                     statusName: claimState_enum_1.ClaimStateEnum.CLAIM_STATE_PENDING,
-                    isActive: true
+                    isActive: true,
+                    created: new Date()
                 }]
         });
         const mensage = {
+            type: 'Nuevo Reclamo',
             orderId: orderId,
             claimId: claim1.claim_id,
-            action: 'Nuevo Reclamo'
         };
         yield claim1.save();
         console.log(claim1);
@@ -157,12 +158,16 @@ function editClaim(id, status, ans, token) {
         if (!user.permissions.includes('admin')) {
             throw new customError_1.CustomError("NOT_VALID_USER");
         }
-        //valido que el estado sea un estado valido
+        //valido que el estado sea valido
         if (status !== claimState_enum_1.ClaimStateEnum.CLAIM_STATE_ACCEPTED && status !== claimState_enum_1.ClaimStateEnum.CLAIM_STATE_CANCELED && status !== claimState_enum_1.ClaimStateEnum.CLAIM_STATE_INPROGRESS) {
             throw new customError_1.CustomError("NOT_VALID_STATUS");
         }
         let claimEdited;
+        let resolutionD;
+        let answerAux;
         if (status === claimState_enum_1.ClaimStateEnum.CLAIM_STATE_INPROGRESS) {
+            resolutionD = null;
+            answerAux = "Su reclamo está siendo revisado por nuestro equipo";
             claimEdited = yield claim_model_1.default.findOne({
                 "_id": id,
                 status: {
@@ -174,6 +179,11 @@ function editClaim(id, status, ans, token) {
             });
         }
         else {
+            if (ans === "") {
+                throw new customError_1.CustomError("NOT_POSSIBLE_ANSWER_CLAIM");
+            }
+            resolutionD = new Date();
+            answerAux = ans;
             claimEdited = yield claim_model_1.default.findOne({
                 "_id": id,
                 status: {
@@ -185,7 +195,7 @@ function editClaim(id, status, ans, token) {
             });
         }
         if (!claimEdited) {
-            throw new customError_1.CustomError("NOT_EXIST_THE_CLAIM");
+            throw new customError_1.CustomError("NOT_POSSIBLE_SOLVE_THE_CLAIM");
         }
         claimEdited.status.forEach((element) => __awaiter(this, void 0, void 0, function* () {
             if (element.isActive) {
@@ -195,11 +205,12 @@ function editClaim(id, status, ans, token) {
         }));
         claimEdited = yield claim_model_1.default.findByIdAndUpdate(id, {
             admin: user.name,
-            answer: ans,
-            resolution_date: new Date(),
+            answer: answerAux,
+            resolution_date: resolutionD,
             status: [...claimEdited.status, {
                     statusName: status,
-                    isActive: true
+                    isActive: true,
+                    created: new Date()
                 }]
         }, { new: true });
         if (claimEdited) {
@@ -214,13 +225,13 @@ function editClaim(id, status, ans, token) {
             action = 'Reclamo Resuelto';
         }
         const mensage = {
+            type: action,
             orderId: claimEdited.order_id,
             claimId: claimEdited.claim_id,
-            action: action
         };
         //envío mensaje a traves de RabbitMQ para el microservicio de notificaciones
         yield (0, emiter_rabbit_1.enviarMensaje)(mensage, 'notification', 'send_notification', 'notificaciones.email');
-        return claimEdited;
+        return;
     });
 }
 //funcion para eliminar un reclamo, solo el user puede eliminarlo
@@ -238,13 +249,13 @@ function lowClaim(id) {
             throw new customError_1.CustomError("CLAIM_OUT_OF_TIME");
         }
         const mensage = {
+            type: 'Reclamo Eliminado',
             orderId: claim.order_id,
             claimId: claim.claim_id,
-            action: 'Reclamo Eliminado'
         };
         yield claim_model_1.default.findByIdAndDelete(id);
         //envio mensaje a RabbitMQ para el microservicio de notificaciones
-        // await enviarMensaje(mensage, 'notification', 'send_notification', 'notificaciones.email');
+        yield (0, emiter_rabbit_1.enviarMensaje)(mensage, 'notification', 'cancel_notification', 'notificaciones.email');
         return;
     });
 }
@@ -252,14 +263,25 @@ function lowClaim(id) {
 function isValidClaimState(state) {
     return Object.values(claimState_enum_1.ClaimStateEnum).includes(state);
 }
+//función para validar si el tipo de reclamo es un tipo válido
+function isValidClaimType(type) {
+    return Object.values(claimType_enum_1.ClaimTtpeEnum).includes(type);
+}
 //Función para dar de baja reclamos asociados a un número de orden recibido del microservicio de ordenes a través de rabbit.
-function lowClaims(id) {
+function dismissClaims(id) {
     return __awaiter(this, void 0, void 0, function* () {
         let claims = yield claim_model_1.default.find({
             order_id: id
         });
         if (!claims) {
             throw new customError_1.CustomError("NOT_EXIST_THE_CLAIM");
+        }
+        for (let i = 0; i < claims.length; i++) {
+            const claim = claims[i];
+            if (claim.status[claim.status.length - 1].statusName === claimState_enum_1.ClaimStateEnum.CLAIM_STATE_DISCHARGED) {
+                console.log("Los reclamos asociados a la orden" + " " + id + " " + "ya fue dado de baja");
+                return;
+            }
         }
         //console.log(claims);
         //Por cada reclamo asociado a la orden
@@ -274,7 +296,8 @@ function lowClaims(id) {
             // Agregar el nuevo estado "Discharged"
             claim.status.push({
                 statusName: claimState_enum_1.ClaimStateEnum.CLAIM_STATE_DISCHARGED,
-                isActive: true
+                isActive: true,
+                created: new Date(),
             });
             //Actualizar los cambios
             yield claim_model_1.default.findByIdAndUpdate(claim._id, {

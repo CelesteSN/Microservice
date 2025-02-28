@@ -3,7 +3,8 @@ import {connectDB } from "./config/mongoDB";
 import { environmentsConfig } from "./config/environments";
 import { initExpress } from "./server/express";
 import { redisInit } from './redis/userRedis';
-import {consumerReportServer} from './rabbit/receiver.rabbit/receiver';
+import {consumerClaimServer} from './rabbit/receiver/receiver.rabbit';
+import {logoutSession} from './rabbit/receiver/receiver.auth.rebbit';
 
 
 const config = environmentsConfig();
@@ -15,7 +16,8 @@ connectDB(config);
 // Conexión Redis
 redisInit();
 //RabbitMQ
-consumerReportServer();
+consumerClaimServer();
+logoutSession();
 
 const app = initExpress(config);
 

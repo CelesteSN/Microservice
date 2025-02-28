@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
-import { getClaims, claimById, editClaim, lowClaim, saveClaim, lowClaims} from '../claim/claim';
-import errorClaim from '../errors/errorClaim';
+import { getClaims, claimById, editClaim, lowClaim, saveClaim, dismissClaims} from '../claim/claim';
 import { CustomError } from '../handlers/customError';
 
 
@@ -40,13 +39,13 @@ export async function getClaimById(req: Request, res: Response) {
 
 export async function createClaim(req: Request, res: Response) {
     try {
-        //Tomo el token del header.
+        //Tomo el bearer token del header.
         let token: any = req.header("Authorization");
         token = token.split(" ")[1] //Separo el Bearer {token} para solo quedarme con el token.
         const { order_id, description, claim_type } = req.body;
         const claimId = await saveClaim(token, order_id, description, claim_type);
         //Valido si ocurrido algún error en el proceso de crear un reporte de una review.
-        res.status(200).json({ message: "Reclamo" + " " + claimId + " " + "creado exitosamente, el administrador será notificado en 24 hs"});
+        res.status(200).json({ message: "Reclamo" + " " + claimId + " " + "creado exitosamente, el administrador será notificado"});
     } catch (error) {
         if (error instanceof CustomError) {
             res.status(error.statusCode).json({ error: error.message });
@@ -72,10 +71,11 @@ export const updateClaim = async (req: Request, res: Response): Promise<void> =>
 
         const claimEdited = await editClaim(id, status, answer, token);
         if(status === "InProgress"){
-            res.status(200).json({ message: "Reclamo en proceso, el usuario fue notificado"});
+            res.status(200).json({ message: "Claim in proces, the user was notified"});
 
+        }else{
+        res.status(200).json({ message: "Claim resolved succesfuly, the user was notified" });
         }
-        res.status(200).json({ message: "Reclamo resuelto exitosamente, el usuario fue notificado" });
     }  catch (error) {
         if (error instanceof CustomError) {
             res.status(error.statusCode).json({ error: error.message });
@@ -89,7 +89,7 @@ export async function deleteClaim(req: Request, res: Response) {
     try {
         const { id } = req.params;
         await lowClaim(id);
-        res.status(200).json({ message: "Reclamo eliminado exitosamente" });
+        res.status(200).json({ message: "Clain deleted succesfuly" });
     } catch (error) {
         if (error instanceof CustomError) {
             res.status(error.statusCode).json({ error: error.message });
@@ -103,8 +103,8 @@ export async function cancelClaims(req: Request, res: Response) {
     try {
        // const { id } = req.params;
         const { order_id } = req.body;
-        await lowClaims(order_id);
-        res.status(200).json({ message: "Los reclamos asociados a la orden número:" + " "+ order_id + " " + "fuerom cancelados correctamente" });
+        await dismissClaims(order_id);
+        res.status(200).json({ message: "Claims associated with order number:" + " "+ order_id + " " + "was canceled succesfuly" });
     } catch (error) {
         if (error instanceof CustomError) {
             res.status(error.statusCode).json({ error: error.message });
