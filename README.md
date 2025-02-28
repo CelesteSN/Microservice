@@ -26,8 +26,8 @@ Permite que el usuario pueda realizar un reclamo sobre una orden.
   - Validar que entre la fecha de emision de la orden y la fecha de hoy no hayan mas de 30 días
   - Crear claim con: user_id, order_id, claim_type, description, created_date: fecha de hoy, status con: nombre "Pending", isActive en true y fecha actual.
   - Guardar el reclamo
-  - Se envía un mensaje al exchange notification a la queue "send_notification", con type: nuevo reclamo, para que el servicio de notification realice la notificación al administrador.
-  - Enviar mensaje "Reclamo creado exitosamente, se notificará el administrador en 24 hs".
+  - Se envía un mensaje al exchange notification a la queue "send_notification" para que el servicio de notification realice la notificación al administrador.
+  - Enviar mensaje "Reclamo creado exitosamente, se notificará el administrador".
  
 #### CU-002: Eliminar Reclamo
 **Descripción:**
@@ -44,7 +44,7 @@ Permite que el usuario pueda realizar un reclamo sobre una orden.
 - Validar estado activo = "Pending"
 - Eliminar reclamo
 - Enviar mensaje "El reclamo se eliminó exitosamente".
-- Se envía un mensaje al exchange notification a la queue "delete_notification", con type: Reclamo eliminado, para que el servicio de notification deje sin efecto la notificación del reclamo.
+- Se envía un mensaje al exchange notification a la queue "delete_notification" para que el servicio de notification deje sin efecto la notificación del reclamo.
   
 #### CU-003: Visualizar reclamos
 **Descripción:**
@@ -87,7 +87,7 @@ Permite al Admin resolver el reclamo.
 - Setear answer: "El reclamo esta siendo investigado por nuestro equipo"
 - Setear el adminId 
 - Guardar el reclamo
-- Se envía un mensaje "send_notification", con type: "reclamo en proceso", para que el servicio de notification realice la notificación correspondiente.
+- Se envía un mensaje "send_notification", para que el servicio de notification realice la notificación correspondiente.
 - Enviar mensaje: Reclamo en proceso.
   
   **Camino Alternativo:**
@@ -99,7 +99,7 @@ Permite al Admin resolver el reclamo.
 - setear resolution_date = fecha de hoy
 - Setear el adminId 
 - Guardar el reclamo
-- Se envía un mensaje "send_notification", con type: "reclamo resuelto", para que el servicio de notification realice la notificación correspondiente.
+- Se envía un mensaje "send_notification", para que el servicio de notification realice la notificación correspondiente.
 - Enviar mensaje: Reclamo resuelto exitosamente.
 
 #### CU-005: Solicitar cancelacion de compra
@@ -264,13 +264,15 @@ Permite al usuario cancelar la orden
     - `200 OK`
       ```json
       {
-        "Listado de reclamos": [
+        "claims": [
           { "claim_id": "claim1",
          "order_id":"Oder1",
           "claim_type": "type1",
           "description": "desc1",
           "created_date": "date1",
-          "state": "state1" },
+          "state":
+      [
+       "state1" },
          { "claim_id": "claim2",
          "order_id":"Oder2",
           "claim_type": "type2",
@@ -333,86 +335,49 @@ Permite al usuario cancelar la orden
       ```json
       { "error_message": "{error_message}" }
       ```
-
-
-
-
-
-**Solicitar cancelacion de compra** (Usuario)
-- `POST ('/v1/claims/{claim_id}/return)`
-  - **Header**
-    ``` 
-    Authorization: Bearer {token}
-    ```
-  - **Uri Params**
-    ``` 
-    claim_id: string (required)
-    ```
-  - **Response**
-    - `200 OK`
-      ```json
-      { "message": "La devolucion esta siendo procesada, revise su email en 24 hs" }
-      ```
-    - `400 BAD REQUEST`
-      ```json
-      { "error_message": "{error_message}" }
-      ```
-    - `401 Unauthorized`
-      ```json
-      { "error_message": "{error_message}" }
-      ```
-    - `404 NOT FOUND`
-      ```json
-      { "error_message": "{error_message}" }
-      ```
-    - `500 Server Error`
-      ```json
-      { "error_message": "{error_message}" }
-      ```
-
       
 ### Interfaz asincronica (rabbit)
 
 
 **Pedido de notificación:**
-Envía por medio del exchange direct notification  a través de la queue send_notification 
+Envía por medio del exchange direct "notification" a través de la queue "send_notification" 
   ```json
 
 {
+	"type": "Nuevo reclamo",
 	"orderId": "12341324",
-	"claimId": "12341324",
-	"action": "Nuevo reclamo"
+	"claimId": "12341324"
 }
   ```
  ```json
 {
+	"type": "Peclamo en proceso",
 	"orderId": "12341324",
-	"claimId": "12341324",
-	"action": "En proceso"
+	"claimId": "12341324"
 }
   ```
  ```json
 {
+	"type": "Reclamo resuelto",
 	"orderId": "12341324",
-	"claimId": "12341324",
-	"action": "Reclamo resuelto"
+	"claimId": "12341324"
+}
+  ```
+Envía por medio del exchange direct "notification" a través de la queue "cancel_notification"
+
+ ```json
+{
+	"type": "Reclamo eliminado",
+	"orderId": "12341324",
+	"claimId": "12341324"
 }
   ```
 
-Envía por medio del exchange direct notification a través de la queue delete_notification 
- ```json
-
-{
-	"orderId": "12341324",
-	"claimId": "12341324",
-	"action": "Reclamo eliminado"
-}
-  ```
 **Cancelación de la orden:**
-Recibe por medio del exchange direct claim_exxhange a través de la queue ordenes_canceladas body
+Recibe por medio del exchange direct "claim_exchange" a través de la queue "ordenes_canceladas"
   ```json
 {
-	"orderId": "23423"
+	"ordenId": "23423"
 }
   ```
 
